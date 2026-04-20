@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
+
+@source '../views/**/*.blade.php';
+@source '../../src/**/*.php';
+
+/* Custom Fields — extend with your own rules here. */

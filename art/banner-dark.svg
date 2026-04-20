@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" role="img" aria-label="Custom Fields — Filament v5 plugin banner (dark)">
+    <title>Custom Fields — Filament v5 plugin</title>
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#0b1020"/>
+            <stop offset="1" stop-color="#1e1b4b"/>
+        </linearGradient>
+        <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#1e293b"/>
+            <stop offset="1" stop-color="#0f172a"/>
+        </linearGradient>
+        <filter id="shadow" x="-5%" y="-10%" width="110%" height="130%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.4"/>
+        </filter>
+    </defs>
+
+    <rect width="1280" height="320" fill="url(#bg)"/>
+
+    <circle cx="1200" cy="80" r="160" fill="#8b5cf6" opacity="0.15"/>
+    <circle cx="1060" cy="40" r="90" fill="#3b82f6" opacity="0.12"/>
+    <circle cx="1240" cy="260" r="110" fill="#ec4899" opacity="0.12"/>
+
+    <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+        <text x="80" y="108" font-size="56" font-weight="800" fill="#f8fafc" letter-spacing="-1.5">Custom Fields</text>
+        <text x="80" y="148" font-size="22" font-weight="500" fill="#cbd5e1">Dynamic fields for any Eloquent model + Filament resource at runtime</text>
+        <text x="80" y="186" font-size="14" font-weight="500" fill="#94a3b8" letter-spacing="0.3">11 field types · admin CRUD · Eloquent + Filament traits · 21 adopters · ARIA-aware</text>
+    </g>
+
+    <g transform="translate(820, 40)" filter="url(#shadow)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+        <rect x="0" y="0" width="380" height="240" rx="12" fill="url(#card)" stroke="#334155" stroke-width="1"/>
+        <text x="20" y="30" font-size="13" font-weight="700" fill="#f8fafc">Custom Fields — Employee</text>
+
+        <text x="20" y="60" font-size="10" font-weight="500" fill="#94a3b8">Shoe size</text>
+        <rect x="20" y="68" width="340" height="26" rx="6" fill="#0f172a" stroke="#334155"/>
+        <text x="28" y="85" font-size="11" fill="#f8fafc">42</text>
+
+        <text x="20" y="115" font-size="10" font-weight="500" fill="#94a3b8">Hobbies</text>
+        <rect x="20" y="123" width="340" height="26" rx="6" fill="#0f172a" stroke="#334155"/>
+        <g transform="translate(28, 131)" font-size="10">
+            <rect x="0" y="0" width="54" height="14" rx="7" fill="#4c1d95"/>
+            <text x="27" y="10" text-anchor="middle" fill="#ddd6fe" font-weight="600">chess</text>
+            <rect x="60" y="0" width="58" height="14" rx="7" fill="#4c1d95"/>
+            <text x="89" y="10" text-anchor="middle" fill="#ddd6fe" font-weight="600">hiking</text>
+            <rect x="124" y="0" width="66" height="14" rx="7" fill="#4c1d95"/>
+            <text x="157" y="10" text-anchor="middle" fill="#ddd6fe" font-weight="600">painting</text>
+        </g>
+
+        <text x="20" y="170" font-size="10" font-weight="500" fill="#94a3b8">Favourite colour</text>
+        <rect x="20" y="178" width="26" height="26" rx="6" fill="#60a5fa"/>
+        <rect x="50" y="178" width="310" height="26" rx="6" fill="#0f172a" stroke="#334155"/>
+        <text x="58" y="195" font-size="11" fill="#f8fafc">#60a5fa</text>
+
+        <rect x="20" y="214" width="80" height="14" rx="4" fill="#16a34a"/>
+        <text x="60" y="224" font-size="9" font-weight="700" fill="#ffffff" text-anchor="middle">SAVED ✓</text>
+    </g>
+
+    <g transform="translate(520, 215)" font-family="'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace">
+        <rect x="0" y="0" width="220" height="32" rx="16" fill="#f8fafc" opacity="0.95"/>
+        <text x="14" y="21" font-size="13" font-weight="600" fill="#0f172a">webkul/custom-fields</text>
+    </g>
+
+    <g transform="translate(80, 215)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="11" font-weight="600">
+        <rect x="0" y="0" width="62" height="20" rx="10" fill="#1e3a8a"/>
+        <text x="31" y="14" text-anchor="middle" fill="#dbeafe">text</text>
+        <rect x="68" y="0" width="78" height="20" rx="10" fill="#064e3b"/>
+        <text x="107" y="14" text-anchor="middle" fill="#a7f3d0">textarea</text>
+        <rect x="152" y="0" width="66" height="20" rx="10" fill="#4c1d95"/>
+        <text x="185" y="14" text-anchor="middle" fill="#ddd6fe">select</text>
+        <rect x="224" y="0" width="86" height="20" rx="10" fill="#7f1d1d"/>
+        <text x="267" y="14" text-anchor="middle" fill="#fecaca">checkbox</text>
+        <rect x="316" y="0" width="62" height="20" rx="10" fill="#78350f"/>
+        <text x="347" y="14" text-anchor="middle" fill="#fde68a">radio</text>
+        <rect x="384" y="0" width="62" height="20" rx="10" fill="#164e63"/>
+        <text x="415" y="14" text-anchor="middle" fill="#a5f3fc">toggle</text>
+        <rect x="0" y="28" width="114" height="20" rx="10" fill="#831843"/>
+        <text x="57" y="42" text-anchor="middle" fill="#fce7f3">checkbox_list</text>
+        <rect x="120" y="28" width="82" height="20" rx="10" fill="#7c2d12"/>
+        <text x="161" y="42" text-anchor="middle" fill="#ffedd5">datetime</text>
+        <rect x="208" y="28" width="62" height="20" rx="10" fill="#312e81"/>
+        <text x="239" y="42" text-anchor="middle" fill="#e0e7ff">editor</text>
+        <rect x="276" y="28" width="86" height="20" rx="10" fill="#581c87"/>
+        <text x="319" y="42" text-anchor="middle" fill="#f3e8ff">markdown</text>
+        <rect x="368" y="28" width="62" height="20" rx="10" fill="#7f1d1d"/>
+        <text x="399" y="42" text-anchor="middle" fill="#fecaca">color</text>
+    </g>
+</svg>
