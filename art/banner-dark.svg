@@ -55,8 +55,8 @@
         <text x="60" y="224" font-size="9" font-weight="700" fill="#ffffff" text-anchor="middle">SAVED ✓</text>
     </g>
 
-    <g transform="translate(520, 215)" font-family="'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace">
-        <rect x="0" y="0" width="220" height="32" rx="16" fill="#f8fafc" opacity="0.95"/>
+    <g transform="translate(560, 215)" font-family="'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace">
+        <rect x="0" y="0" width="230" height="32" rx="16" fill="#f8fafc" opacity="0.95"/>
         <text x="14" y="21" font-size="13" font-weight="600" fill="#0f172a">aureuserp/custom-fields</text>
     </g>
 
