@@ -181,6 +181,9 @@ return [
                     'color' => [
                         'hex-color' => 'Hex Color',
                     ],
+
+                    'star-rating' => [
+                    ],
                 ],
 
                 'settings' => [
@@ -352,6 +355,17 @@ return [
                         'id'          => 'Id',
                         'rgb'         => 'RGB',
                         'rgba'        => 'RGBA',
+                    ],
+
+                    'star-rating' => [
+                        'default'     => 'Default Value',
+                        'disabled'    => 'Disabled',
+                        'helper-text' => 'Helper Text',
+                        'hint'        => 'Hint',
+                        'hint-color'  => 'Hint Color',
+                        'hint-icon'   => 'Hint Icon',
+                        'id'          => 'Id',
+                        'read-only'   => 'Read Only',
                     ],
 
                     'file' => [
@@ -648,6 +662,7 @@ return [
                         'editor'        => 'Rich Text Editor',
                         'markdown'      => 'Markdown Editor',
                         'color'         => 'Color Picker',
+                        'star-rating'   => 'Star Rating',
                     ],
 
                     'input-type-options' => [
@@ -701,6 +716,7 @@ return [
                 'editor'        => 'Rich Text Editor',
                 'markdown'      => 'Markdown Editor',
                 'color'         => 'Color Picker',
+                'star-rating'   => 'Star Rating',
             ],
         ],
 

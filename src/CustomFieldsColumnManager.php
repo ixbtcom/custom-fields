@@ -103,6 +103,7 @@ class CustomFieldsColumnManager
             'checkbox_list' => 'json',
             'datetime'      => 'datetime',
             'color'         => 'string',
+            'star_rating'   => 'integer',
             default         => 'string'
         };
     }

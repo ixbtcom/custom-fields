@@ -63,6 +63,7 @@ trait HasCustomFields
                 'checkbox'      => $this->casts[$attribute->code] = 'boolean',
                 'toggle'        => $this->casts[$attribute->code] = 'boolean',
                 'checkbox_list' => $this->casts[$attribute->code] = 'array',
+                'star_rating'   => $this->casts[$attribute->code] = 'integer',
                 default         => $this->casts[$attribute->code] = 'string',
             };
         }

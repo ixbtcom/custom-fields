@@ -22,6 +22,7 @@ class CustomFieldsServiceProvider extends PackageServiceProvider
             ->name(static::$name)
             ->hasConfigFile(['custom-fields', 'filament-shield'])
             ->hasTranslations()
+            ->hasViews(static::$viewNamespace)
             ->hasMigration('2024_11_13_052541_create_custom_fields_table')
             ->runsMigrations();
     }

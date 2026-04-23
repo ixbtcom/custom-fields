@@ -87,6 +87,7 @@ class CustomEntries extends Component
             'datetime'      => TextEntry::class,
             'editor', 'markdown' => TextEntry::class,
             'color' => ColorEntry::class,
+            'star_rating' => StarRatingEntry::class,
             default => TextEntry::class,
         };
 

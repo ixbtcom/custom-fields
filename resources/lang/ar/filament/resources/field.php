@@ -181,6 +181,9 @@ return [
                     'color' => [
                         'hex-color' => 'لون سداسي عشري',
                     ],
+
+                    'star-rating' => [
+                    ],
                 ],
 
                 'settings' => [
@@ -352,6 +355,17 @@ return [
                         'id'          => 'المعرف',
                         'rgb'         => 'RGB',
                         'rgba'        => 'RGBA',
+                    ],
+
+                    'star-rating' => [
+                        'default'     => 'القيمة الافتراضية',
+                        'disabled'    => 'معطل',
+                        'helper-text' => 'نص مساعد',
+                        'hint'        => 'تلميح',
+                        'hint-color'  => 'لون التلميح',
+                        'hint-icon'   => 'أيقونة التلميح',
+                        'id'          => 'المعرف',
+                        'read-only'   => 'للقراءة فقط',
                     ],
 
                     'file' => [
@@ -648,6 +662,7 @@ return [
                         'editor'        => 'محرر نص غني',
                         'markdown'      => 'محرر Markdown',
                         'color'         => 'منتقي الألوان',
+                        'star-rating'   => 'تقييم بالنجوم',
                     ],
 
                     'input-type-options' => [
@@ -701,6 +716,7 @@ return [
                 'editor'        => 'محرر نص غني',
                 'markdown'      => 'محرر Markdown',
                 'color'         => 'منتقي الألوان',
+                'star-rating'   => 'تقييم بالنجوم',
             ],
         ],
 

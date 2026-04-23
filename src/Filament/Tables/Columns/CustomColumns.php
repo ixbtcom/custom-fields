@@ -88,6 +88,7 @@ class CustomColumns extends Component
             'datetime'      => TextColumn::class,
             'editor', 'markdown' => TextColumn::class,
             'color' => ColorColumn::class,
+            'star_rating' => StarRatingColumn::class,
             default => TextColumn::class,
         };
 

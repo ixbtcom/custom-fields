@@ -29,6 +29,7 @@ use Filament\Support\Enums\TextSize;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use BackedEnum;
 use Filament\Pages\Enums\SubNavigationPosition;
@@ -120,6 +121,15 @@ class FieldResource extends Resource
     public static function getSubNavigationPosition(): SubNavigationPosition
     {
         return static::plugin()->getSubNavigationPosition() ?? SubNavigationPosition::Start;
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        if (method_exists($record, 'trashed') && $record->trashed()) {
+            return false;
+        }
+
+        return parent::canEdit($record);
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -216,6 +226,7 @@ class FieldResource extends Resource
                                         'editor'        => __('custom-fields::filament/resources/field.form.sections.settings.fields.type-options.editor'),
                                         'markdown'      => __('custom-fields::filament/resources/field.form.sections.settings.fields.type-options.markdown'),
                                         'color'         => __('custom-fields::filament/resources/field.form.sections.settings.fields.type-options.color'),
+                                        'star_rating'   => __('custom-fields::filament/resources/field.form.sections.settings.fields.type-options.star-rating'),
                                     ]),
                                 Select::make('input_type')
                                     ->label(__('custom-fields::filament/resources/field.form.sections.settings.fields.input-type'))
@@ -681,6 +692,8 @@ class FieldResource extends Resource
                 'hexColor' => __('custom-fields::filament/resources/field.form.sections.form-settings.validations.color.hex-color'),
             ],
 
+            'star_rating' => [],
+
             default => [],
         };
 
@@ -862,6 +875,17 @@ class FieldResource extends Resource
                 'id'         => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.color.id'),
                 'rgb'        => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.color.rgb'),
                 'rgba'       => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.color.rgba'),
+            ],
+
+            'star_rating' => [
+                'default'    => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.default'),
+                'disabled'   => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.disabled'),
+                'helperText' => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.helper-text'),
+                'hint'       => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.hint'),
+                'hintColor'  => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.hint-color'),
+                'hintIcon'   => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.hint-icon'),
+                'id'         => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.id'),
+                'readOnly'   => __('custom-fields::filament/resources/field.form.sections.form-settings.settings.star-rating.read-only'),
             ],
 
             'file' => [

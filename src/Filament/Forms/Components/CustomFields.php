@@ -97,6 +97,7 @@ class CustomFields extends Component
             'editor'        => RichEditor::class,
             'markdown'      => MarkdownEditor::class,
             'color'         => ColorPicker::class,
+            'star_rating'   => StarRating::class,
             default         => TextInput::class,
         };
 

@@ -59,3 +59,24 @@ it('all four injector classes publicly expose getSchema or getColumns or getFilt
     expect(method_exists(CustomFilters::class, 'getFilters'))->toBeTrue();
     expect(method_exists(CustomFilters::class, 'getQueryBuilderConstraints'))->toBeTrue();
 });
+
+it('StarRating component classes exist and extend the expected base classes', function () {
+    expect(class_exists(\Webkul\CustomFields\Filament\Forms\Components\StarRating::class))->toBeTrue();
+    expect(class_exists(\Webkul\CustomFields\Filament\Infolists\Components\StarRatingEntry::class))->toBeTrue();
+    expect(class_exists(\Webkul\CustomFields\Filament\Tables\Columns\StarRatingColumn::class))->toBeTrue();
+
+    expect(is_subclass_of(
+        \Webkul\CustomFields\Filament\Forms\Components\StarRating::class,
+        \Filament\Forms\Components\Field::class,
+    ))->toBeTrue();
+
+    expect(is_subclass_of(
+        \Webkul\CustomFields\Filament\Infolists\Components\StarRatingEntry::class,
+        \Filament\Infolists\Components\Entry::class,
+    ))->toBeTrue();
+
+    expect(is_subclass_of(
+        \Webkul\CustomFields\Filament\Tables\Columns\StarRatingColumn::class,
+        \Filament\Tables\Columns\Column::class,
+    ))->toBeTrue();
+});

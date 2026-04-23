@@ -26,6 +26,7 @@ Let your end-users add **dynamic fields** to any Eloquent model + Filament resou
   - [Components](#components)
   - [Column manager](#column-manager)
 - [Enums](#enums)
+- [Star rating field](#star-rating-field)
 - [Real-world example](#real-world-example)
 - [Translations](#translations)
 - [Publishing resources](#publishing-resources)
@@ -43,15 +44,16 @@ Let your end-users add **dynamic fields** to any Eloquent model + Filament resou
 - **Eloquent trait** (`HasCustomFields`) — drop onto any model; custom field codes auto-merge into `$fillable` and `$casts` at runtime
 - **Filament resource trait** — 5 one-line merge helpers: `mergeCustomFormFields`, `mergeCustomTableColumns`, `mergeCustomTableFilters`, `mergeCustomTableQueryBuilderConstraints`, `mergeCustomInfolistEntries`
 - **Admin CRUD** (`/admin/custom-fields`) — create, edit, sort, soft-delete dynamic fields per resource, with full validation / formatting settings
-- **11 field types** via `FieldType` enum — Text, Textarea, Select, Checkbox, Radio, Toggle, CheckboxList, DateTime, Editor, Markdown, ColorPicker
+- **12 field types** via `FieldType` enum — Text, Textarea, Select, Checkbox, Radio, Toggle, CheckboxList, DateTime, Editor, Markdown, ColorPicker, StarRating
 - **8 text input types** via `InputType` enum — Text, Email, Numeric, Integer, Password, Tel, Url, Color
+- **Star rating field** — 0–10 scale with half-star precision, paired numeric input + clickable stars, scaled-integer storage (`value × 100`)
 - **Schema manager** (`CustomFieldsColumnManager`) — programmatically add / drop DB columns when fields are created or deleted
 - **Table integration** — the defined fields automatically surface as `CustomColumns` (if `use_in_table=true`) and `CustomFilters`
 - **Spatie-sortable** — drag-to-reorder fields with `order_column_name=sort`
 - **Soft deletes** — recover deleted field definitions
 - **Policy + permissions** — Filament Shield compatible, with `view_any_field_field`, `create_field_field` etc.
-- **Translations** — `en` and `ar` shipped (navigation + form labels + validation names + setting names)
-- **Pest test suite** — architecture + model + policy + trait + components + enums (31 tests)
+- **Translations** — `en`, `ar`, and `ru` shipped (navigation + form labels + validation names + setting names)
+- **Pest test suite** — architecture + model + policy + trait + components + enums + star rating + translation parity (46 tests)
 
 ---
 
@@ -210,6 +212,7 @@ The DB type mapping uses `getColumnType()` which routes via `FieldType::tryFrom(
 | `checkbox`, `toggle` | `boolean` |
 | `checkbox_list` | `json` |
 | `datetime` | `datetime` |
+| `star_rating` | `integer` (stored as display value × base, default base = 100) |
 
 ---
 
@@ -217,7 +220,7 @@ The DB type mapping uses `getColumnType()` which routes via `FieldType::tryFrom(
 
 | Enum | Cases → values | Default |
 |---|---|---|
-| `FieldType` | `Text='text'`, `Textarea='textarea'`, `Select='select'`, `Checkbox='checkbox'`, `Radio='radio'`, `Toggle='toggle'`, `CheckboxList='checkbox_list'`, `DateTime='datetime'`, `Editor='editor'`, `Markdown='markdown'`, `ColorPicker='color'` | `FieldType::Text` |
+| `FieldType` | `Text='text'`, `Textarea='textarea'`, `Select='select'`, `Checkbox='checkbox'`, `Radio='radio'`, `Toggle='toggle'`, `CheckboxList='checkbox_list'`, `DateTime='datetime'`, `Editor='editor'`, `Markdown='markdown'`, `ColorPicker='color'`, `StarRating='star_rating'` | `FieldType::Text` |
 | `InputType` | `Text`, `Email`, `Numeric`, `Integer`, `Password`, `Tel`, `Url`, `Color` | `InputType::Text` |
 
 Both enums expose a `default()` static for symbolic-constant fallbacks:
@@ -228,6 +231,36 @@ use Webkul\CustomFields\Enums\InputType;
 
 $type = FieldType::tryFrom($raw) ?? FieldType::default();
 ```
+
+---
+
+## Star rating field
+
+`Webkul\CustomFields\Filament\Forms\Components\StarRating` (plus the matching `StarRatingEntry` and `StarRatingColumn`) ships with the plugin and is selected automatically when an admin picks **Star Rating** in the CRUD.
+
+Default behaviour:
+
+- 5 half-fillable stars representing a 0–10 display value, step 0.5.
+- Paired UI: click any half-star **or** type the number directly into the adjacent input; the two stay in sync. Out-of-range or off-step input snaps to the nearest valid value on blur.
+- Clearable — blanking the input (or clicking the active half-star a second time) sets the value to `null`.
+
+Storage strategy — **scaled integer**:
+
+- The DB column is a plain `integer`, not a float or decimal. The display value is multiplied by the component's `base` (default `100`) before persisting, and divided back on hydration. `7.5` display → `750` stored → `7.5` display.
+- This keeps equality / range queries exact (`where('score', 750)` finds the 7.5 rows), avoids IEEE-754 rounding, and serialises cleanly into JSON columns if the field ever lives alongside JSON data.
+- If you need the raw display value outside Filament, divide by the base yourself:
+
+```php
+$displayScore = $employee->score === null ? null : $employee->score / 100;
+```
+
+Range filter (admin list table):
+
+- The plugin registers two numeric inputs (**from** / **to**). Values are entered in display units (0–10); the filter multiplies them by the base when building the `where … between` clause.
+
+QueryBuilder constraint:
+
+- Surfaces the underlying integer column via `NumberConstraint`. Power users working in the Query Builder compare against the stored integer (i.e. enter `750` to mean `7.5`). The friendly range filter above is the recommended UX for day-to-day filtering.
 
 ---
 
@@ -296,7 +329,7 @@ $employee->hobbies;  // ['chess', 'hiking']  ← automatically cast from JSON
 
 ## Translations
 
-Ships with `en` and `ar` under the `custom-fields::` namespace. Publish to customise:
+Ships with `en`, `ar`, and `ru` under the `custom-fields::` namespace. Publish to customise:
 
 ```bash
 php artisan vendor:publish --tag="custom-fields-translations"

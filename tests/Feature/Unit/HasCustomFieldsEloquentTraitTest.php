@@ -44,3 +44,24 @@ it('trait declares boot + fill + merge helpers', function () {
     expect($methods)->toContain('mergeFillable');
     expect($methods)->toContain('mergeCasts');
 });
+
+it('mergeCasts assigns integer cast for star_rating type', function () {
+    $model = new class extends Model {
+        use HasCustomFields;
+
+        public function exposedCasts(): array
+        {
+            return $this->casts;
+        }
+    };
+
+    $attributes = collect([
+        (object) ['code' => 'score', 'type' => 'star_rating', 'is_multiselect' => false],
+        (object) ['code' => 'opinion', 'type' => 'text', 'is_multiselect' => false],
+    ]);
+
+    $model->mergeCasts($attributes);
+
+    expect($model->exposedCasts()['score'] ?? null)->toBe('integer');
+    expect($model->exposedCasts()['opinion'] ?? null)->toBe('string');
+});

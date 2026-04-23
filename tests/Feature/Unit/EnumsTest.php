@@ -4,7 +4,7 @@ use Webkul\CustomFields\Enums\FieldType;
 use Webkul\CustomFields\Enums\InputType;
 
 describe('FieldType', function () {
-    it('has all 11 cases with expected string values', function () {
+    it('has all 12 cases with expected string values', function () {
         expect(FieldType::Text->value)->toBe('text');
         expect(FieldType::Textarea->value)->toBe('textarea');
         expect(FieldType::Select->value)->toBe('select');
@@ -16,6 +16,11 @@ describe('FieldType', function () {
         expect(FieldType::Editor->value)->toBe('editor');
         expect(FieldType::Markdown->value)->toBe('markdown');
         expect(FieldType::ColorPicker->value)->toBe('color');
+        expect(FieldType::StarRating->value)->toBe('star_rating');
+    });
+
+    it('cases() returns exactly 12 entries', function () {
+        expect(count(FieldType::cases()))->toBe(12);
     });
 
     it('provides a default()', function () {
@@ -28,6 +33,10 @@ describe('FieldType', function () {
 
     it('tryFrom resolves known values', function () {
         expect(FieldType::tryFrom('select'))->toBe(FieldType::Select);
+    });
+
+    it('tryFrom resolves star_rating to StarRating case', function () {
+        expect(FieldType::tryFrom('star_rating'))->toBe(FieldType::StarRating);
     });
 });
 
