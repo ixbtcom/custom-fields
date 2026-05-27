@@ -81,7 +81,7 @@ php artisan migrate
 ```
 
 > [!NOTE]
-> **Migrating from `webkul/fields`**: the `custom_fields` table migration keeps its original timestamp filename, so existing installations will see it already applied — no duplicate-table errors, no re-run.
+> **Migrating from `webkul/fields`**: the `custom_fields` table migration is idempotent. Existing installations that already created the table can mark the matching migration as applied without duplicate-table errors.
 
 ---
 
