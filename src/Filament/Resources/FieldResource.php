@@ -2,7 +2,9 @@
 
 namespace Webkul\CustomFields\Filament\Resources;
 
+use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -29,12 +31,14 @@ use Filament\Support\Enums\TextSize;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use BackedEnum;
 use Filament\Pages\Enums\SubNavigationPosition;
 use Webkul\CustomFields\CustomFieldsColumnManager;
 use Webkul\CustomFields\CustomFieldsPlugin;
+use Webkul\CustomFields\Enums\StorageMode;
 use Webkul\CustomFields\Filament\Resources\FieldResource\Pages\CreateField;
 use Webkul\CustomFields\Filament\Resources\FieldResource\Pages\EditField;
 use Webkul\CustomFields\Filament\Resources\FieldResource\Pages\ListFields;
@@ -137,6 +141,120 @@ class FieldResource extends Resource
         return static::plugin()->shouldRegisterNavigation();
     }
 
+    protected static function buildPurgeAction(Field $record): array
+    {
+        if (! preg_match('/^[a-z_][a-z0-9_]*$/i', $record->code)) {
+            return ['count' => 0, 'error' => 'invalid_code'];
+        }
+
+        $model = app($record->customizable_type);
+        $table = $model->getTable();
+
+        if ($record->isJsonMode()) {
+            $col = $record->getJsonColumn();
+
+            if (! preg_match('/^[a-z_][a-z0-9_]*$/i', $col)) {
+                return ['count' => 0, 'error' => 'invalid_column'];
+            }
+
+            $driver = DB::connection()->getDriverName();
+
+            if ($driver !== 'mysql') {
+                return ['count' => 0, 'error' => 'unsupported_driver'];
+            }
+
+            $count = DB::table($table)
+                ->whereRaw("JSON_CONTAINS_PATH(`{$col}`, 'one', ?)", ['$.' . $record->code])
+                ->update([$col => DB::raw("JSON_REMOVE(`{$col}`, '$.{$record->code}')")]);
+        } else {
+            $count = DB::table($table)->whereNotNull($record->code)->update([$record->code => null]);
+        }
+
+        return ['count' => $count, 'error' => null];
+    }
+
+    protected static function getPurgePreflightCount(Field $record): int
+    {
+        try {
+            if (! preg_match('/^[a-z_][a-z0-9_]*$/i', $record->code)) {
+                return 0;
+            }
+
+            $model = app($record->customizable_type);
+            $table = $model->getTable();
+
+            if ($record->isJsonMode()) {
+                $col = $record->getJsonColumn();
+
+                if (! preg_match('/^[a-z_][a-z0-9_]*$/i', $col)) {
+                    return 0;
+                }
+
+                if (DB::connection()->getDriverName() !== 'mysql') {
+                    return 0;
+                }
+
+                return (int) DB::table($table)
+                    ->whereRaw("JSON_CONTAINS_PATH(`{$col}`, 'one', ?)", ['$.' . $record->code])
+                    ->count();
+            }
+
+            return (int) DB::table($table)->whereNotNull($record->code)->count();
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    protected static function emitStorageColumnWarning(?string $storageColumn, ?string $customizableType, ?string $code): void
+    {
+        if (! $storageColumn || ! $customizableType || ! $code) {
+            return;
+        }
+
+        try {
+            $model = app($customizableType);
+            $table = $model->getTable();
+
+            if (! Schema::hasColumn($table, $storageColumn)) {
+                Notification::make()
+                    ->warning()
+                    ->title(__('custom-fields::filament/resources/field.form.sections.settings.fields.storage-column-warning'))
+                    ->send();
+
+                return;
+            }
+
+            $casts = $model->getCasts();
+            $isJsonCast = isset($casts[$storageColumn])
+                && in_array($casts[$storageColumn], ['array', 'json', 'object', \Illuminate\Database\Eloquent\Casts\AsArrayObject::class], true);
+
+            if (! $isJsonCast) {
+                Notification::make()
+                    ->warning()
+                    ->title(__('custom-fields::filament/resources/field.form.sections.settings.fields.storage-column-warning'))
+                    ->send();
+
+                return;
+            }
+
+            if (
+                DB::connection()->getDriverName() === 'mysql'
+                && preg_match('/^[a-z_][a-z0-9_]*$/i', $storageColumn)
+                && preg_match('/^[a-z_][a-z0-9_]*$/i', $code)
+                && DB::table($table)->whereRaw("JSON_CONTAINS_PATH(`{$storageColumn}`, 'one', ?)", ['$.' . $code])->exists()
+            ) {
+                Notification::make()
+                    ->warning()
+                    ->title(__('custom-fields::filament/resources/field.form.sections.settings.fields.collision-warning', [
+                        'code'   => $code,
+                        'column' => $storageColumn,
+                    ]))
+                    ->send();
+            }
+        } catch (\Throwable) {
+        }
+    }
+
     public static function form(\Filament\Schemas\Schema $schema): \Filament\Schemas\Schema
     {
         return $schema
@@ -155,9 +273,19 @@ class FieldResource extends Resource
                                     ->maxLength(255)
                                     ->disabledOn('edit')
                                     ->helperText(__('custom-fields::filament/resources/field.form.sections.general.fields.code-helper-text'))
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (?string $state, Get $get) {
+                                        if ($get('storage') === StorageMode::Json->value) {
+                                            static::emitStorageColumnWarning($get('storage_column') ?: 'extra', $get('customizable_type'), $state);
+                                        }
+                                    })
                                     ->unique(ignoreRecord: true)
-                                    ->notIn(function (Get $get) {
-                                        if ($get('id') || ! $get('customizable_type')) {
+                                    ->notIn(function (Get $get, string $operation) {
+                                        if ($operation !== 'create' || ! $get('customizable_type')) {
+                                            return [];
+                                        }
+
+                                        if ($get('storage') === StorageMode::Json->value) {
                                             return [];
                                         }
 
@@ -249,6 +377,34 @@ class FieldResource extends Resource
                                     ->required()
                                     ->visible(fn (Get $get): bool => $get('type') == 'select')
                                     ->live(),
+                                Select::make('storage')
+                                    ->label(__('custom-fields::filament/resources/field.form.sections.settings.fields.storage'))
+                                    ->native(false)
+                                    ->live()
+                                    ->disabledOn('edit')
+                                    ->default(StorageMode::Schema->value)
+                                    ->options([
+                                        StorageMode::Schema->value => __('custom-fields::filament/resources/field.form.sections.settings.fields.storage-options.schema'),
+                                        StorageMode::Json->value   => __('custom-fields::filament/resources/field.form.sections.settings.fields.storage-options.json'),
+                                    ])
+                                    ->afterStateUpdated(function (?string $state, Get $get) {
+                                        if ($state === StorageMode::Json->value) {
+                                            static::emitStorageColumnWarning($get('storage_column') ?: 'extra', $get('customizable_type'), $get('code'));
+                                        }
+                                    })
+                                    ->helperText(__('custom-fields::filament/resources/field.form.sections.settings.fields.storage-helper')),
+                                TextInput::make('storage_column')
+                                    ->label(__('custom-fields::filament/resources/field.form.sections.settings.fields.storage-column'))
+                                    ->visible(fn (Get $get): bool => $get('storage') === StorageMode::Json->value)
+                                    ->default('extra')
+                                    ->disabledOn('edit')
+                                    ->maxLength(64)
+                                    ->rules(['regex:/^[a-z_][a-z0-9_]*$/i'])
+                                    ->helperText(__('custom-fields::filament/resources/field.form.sections.settings.fields.storage-column-helper'))
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(function (?string $state, Get $get) {
+                                        static::emitStorageColumnWarning($state ?: 'extra', $get('customizable_type'), $get('code'));
+                                    }),
                                 TextInput::make('sort')
                                     ->label(__('custom-fields::filament/resources/field.form.sections.settings.fields.sort-order'))
                                     ->required()
@@ -263,7 +419,13 @@ class FieldResource extends Resource
                                     ->required()
                                     ->searchable()
                                     ->native(false)
+                                    ->live()
                                     ->disabledOn('edit')
+                                    ->afterStateUpdated(function (?string $state, Get $get) {
+                                        if ($get('storage') === StorageMode::Json->value) {
+                                            static::emitStorageColumnWarning($get('storage_column') ?: 'extra', $state, $get('code'));
+                                        }
+                                    })
                                     ->options(fn () => collect(Filament::getResources())->filter(fn ($resource) => in_array('Webkul\CustomFields\Filament\Concerns\HasCustomFields', class_uses($resource)))->mapWithKeys(fn ($resource) => [
                                         $resource::getModel() => str($resource)->afterLast('\\')->toString(),
                                     ])),
@@ -289,6 +451,11 @@ class FieldResource extends Resource
                 TextColumn::make('type')
                     ->label(__('custom-fields::filament/resources/field.table.columns.type'))
                     ->sortable(),
+                TextColumn::make('storage')
+                    ->label(__('custom-fields::filament/resources/field.table.columns.storage'))
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state instanceof StorageMode ? $state->value : $state)
+                    ->sortable(),
                 TextColumn::make('customizable_type')
                     ->label(__('custom-fields::filament/resources/field.table.columns.resource'))
                     ->description(fn (Field $record): string => str($record->customizable_type)->afterLast('\\')->toString().'Resource')
@@ -312,6 +479,7 @@ class FieldResource extends Resource
                         'editor'        => __('custom-fields::filament/resources/field.table.filters.type-options.editor'),
                         'markdown'      => __('custom-fields::filament/resources/field.table.filters.type-options.markdown'),
                         'color'         => __('custom-fields::filament/resources/field.table.filters.type-options.color'),
+                        'star_rating'   => __('custom-fields::filament/resources/field.table.filters.type-options.star-rating'),
                     ]),
                 SelectFilter::make('customizable_type')
                     ->label(__('custom-fields::filament/resources/field.table.filters.resource'))
@@ -323,6 +491,52 @@ class FieldResource extends Resource
                 ActionGroup::make([
                     EditAction::make()
                         ->hidden(fn ($record) => $record->trashed()),
+                    Action::make('purgeValues')
+                        ->label(__('custom-fields::filament/resources/field.table.actions.purge.label'))
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading(__('custom-fields::filament/resources/field.table.actions.purge.modal.heading'))
+                        ->modalDescription(function (Field $record) {
+                            $count = static::getPurgePreflightCount($record);
+
+                            return __('custom-fields::filament/resources/field.table.actions.purge.modal.description', [
+                                'count' => $count,
+                                'code'  => $record->code,
+                            ]);
+                        })
+                        ->form([
+                            \Filament\Forms\Components\TextInput::make('confirmation')
+                                ->label(__('custom-fields::filament/resources/field.table.actions.purge.confirmation.input-label'))
+                                ->required()
+                                ->rules([fn ($record): string => 'in:' . ($record?->code ?? '')]),
+                        ])
+                        ->action(function (Field $record) {
+                            $result = static::buildPurgeAction($record);
+
+                            if ($result['error'] === 'unsupported_driver') {
+                                Notification::make()
+                                    ->danger()
+                                    ->title(__('custom-fields::filament/resources/field.table.actions.purge.unsupported-driver'))
+                                    ->send();
+
+                                return;
+                            }
+
+                            if ($result['error'] !== null) {
+                                Notification::make()
+                                    ->danger()
+                                    ->title(__('custom-fields::filament/resources/field.table.actions.purge.notification.error'))
+                                    ->send();
+
+                                return;
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title(__('custom-fields::filament/resources/field.table.actions.purge.notification.title'))
+                                ->body(__('custom-fields::filament/resources/field.table.actions.purge.notification.body', ['count' => $result['count']]))
+                                ->send();
+                        }),
                     RestoreAction::make()
                         ->successNotification(
                             Notification::make()
@@ -377,6 +591,46 @@ class FieldResource extends Resource
                                 ->title(__('custom-fields::filament/resources/field.table.bulk-actions.force-delete.notification.title'))
                                 ->body(__('custom-fields::filament/resources/field.table.bulk-actions.force-delete.notification.body')),
                         ),
+                    BulkAction::make('purgeValuesBulk')
+                        ->label(__('custom-fields::filament/resources/field.table.bulk-actions.purge.label'))
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading(__('custom-fields::filament/resources/field.table.bulk-actions.purge.modal.heading'))
+                        ->action(function (\Illuminate\Support\Collection $records) {
+                            $updated = 0;
+                            $failed  = 0;
+                            $skipped = 0;
+
+                            foreach ($records as $record) {
+                                try {
+                                    $result = static::buildPurgeAction($record);
+
+                                    if ($result['error'] === 'unsupported_driver') {
+                                        $skipped++;
+                                        continue;
+                                    }
+
+                                    if ($result['error'] !== null) {
+                                        $failed++;
+                                        continue;
+                                    }
+
+                                    $updated += $result['count'];
+                                } catch (\Throwable) {
+                                    $failed++;
+                                }
+                            }
+
+                            Notification::make()
+                                ->success()
+                                ->title(__('custom-fields::filament/resources/field.table.bulk-actions.purge.notification.title'))
+                                ->body(__('custom-fields::filament/resources/field.table.bulk-actions.purge.notification.body', [
+                                    'updated' => $updated,
+                                    'failed'  => $failed,
+                                    'skipped' => $skipped,
+                                ]))
+                                ->send();
+                        }),
                 ]),
             ])
             ->defaultSort('created_at', 'desc');

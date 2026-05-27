@@ -101,7 +101,7 @@ class CustomFields extends Component
             default         => TextInput::class,
         };
 
-        $component = $componentClass::make($field->code)
+        $component = $componentClass::make($field->getComponentPath())
             ->label($field->name);
 
         if (! empty($field->form_settings['validations'])) {

@@ -100,15 +100,19 @@ class CustomFilters extends Component
 
     protected function createFilter(Field $field): BaseFilter
     {
+        $qCol = $field->getQueryColumn();
+        $name = $field->getSanitizedName();
+
         $filter = match ($field->type) {
-            'checkbox' => Filter::make($field->code)
-                ->query(fn (Builder $query): Builder => $query->where($field->code, true)),
+            'checkbox' => Filter::make($name)
+                ->query(fn (Builder $query): Builder => $query->where($qCol, true)),
 
-            'toggle' => Filter::make($field->code)
+            'toggle' => Filter::make($name)
                 ->toggle()
-                ->query(fn (Builder $query): Builder => $query->where($field->code, true)),
+                ->query(fn (Builder $query): Builder => $query->where($qCol, true)),
 
-            'radio' => SelectFilter::make($field->code)
+            'radio' => SelectFilter::make($name)
+                ->attribute($qCol)
                 ->options(function () use ($field) {
                     return collect($field->options)
                         ->mapWithKeys(fn ($option) => [$option => $option])
@@ -116,51 +120,52 @@ class CustomFilters extends Component
                 }),
 
             'select' => $field->is_multiselect
-                ? SelectFilter::make($field->code)
+                ? SelectFilter::make($name)
                     ->options(function () use ($field) {
                         return collect($field->options)
                             ->mapWithKeys(fn ($option) => [$option => $option])
                             ->toArray();
                     })
-                    ->query(function (Builder $query, $state) use ($field): Builder {
+                    ->query(function (Builder $query, $state) use ($qCol): Builder {
                         if (empty($state['values'])) {
                             return $query;
                         }
 
-                        return $query->where(function (Builder $query) use ($state, $field) {
-                            foreach ((array) $state as $value) {
-                                $query->orWhereJsonContains($field->code, $value);
+                        return $query->where(function (Builder $query) use ($state, $qCol) {
+                            foreach ((array) $state['values'] as $value) {
+                                $query->orWhereJsonContains($qCol, $value);
                             }
                         });
                     })
                     ->multiple()
-                : SelectFilter::make($field->code)
+                : SelectFilter::make($name)
+                    ->attribute($qCol)
                     ->options(function () use ($field) {
                         return collect($field->options)
                             ->mapWithKeys(fn ($option) => [$option => $option])
                             ->toArray();
                     }),
 
-            'checkbox_list' => SelectFilter::make($field->code)
+            'checkbox_list' => SelectFilter::make($name)
                 ->options(function () use ($field) {
                     return collect($field->options)
                         ->mapWithKeys(fn ($option) => [$option => $option])
                         ->toArray();
                 })
-                ->query(function (Builder $query, $state) use ($field): Builder {
+                ->query(function (Builder $query, $state) use ($qCol): Builder {
                     if (empty($state['values'])) {
                         return $query;
                     }
 
-                    return $query->where(function (Builder $query) use ($state, $field) {
-                        foreach ((array) $state as $value) {
-                            $query->orWhereJsonContains($field->code, $value);
+                    return $query->where(function (Builder $query) use ($state, $qCol) {
+                        foreach ((array) $state['values'] as $value) {
+                            $query->orWhereJsonContains($qCol, $value);
                         }
                     });
                 })
                 ->multiple(),
 
-            'star_rating' => Filter::make($field->code)
+            'star_rating' => Filter::make($name)
                 ->schema([
                     TextInput::make('from')
                         ->numeric()
@@ -173,55 +178,102 @@ class CustomFilters extends Component
                         ->maxValue(StarRating::DEFAULT_MAX_VALUE)
                         ->step(StarRating::DEFAULT_STEP),
                 ])
-                ->query(function (Builder $query, array $data) use ($field): Builder {
-                    $base = StarRating::DEFAULT_BASE;
+                ->query(function (Builder $query, array $data) use ($field, $qCol): Builder {
+                    $base    = StarRating::DEFAULT_BASE;
+                    $isJson  = $field->isJsonMode();
 
                     return $query
                         ->when(
                             isset($data['from']) && $data['from'] !== '' && $data['from'] !== null,
-                            fn (Builder $q) => $q->where($field->code, '>=', (int) round(((float) $data['from']) * $base))
+                            function (Builder $q) use ($qCol, $data, $base, $isJson) {
+                                $val = (int) round(((float) $data['from']) * $base);
+                                $isJson
+                                    ? $this->applyJsonIntegerComparison($q, $qCol, '>=', $val)
+                                    : $q->where($qCol, '>=', $val);
+                            }
                         )
                         ->when(
                             isset($data['to']) && $data['to'] !== '' && $data['to'] !== null,
-                            fn (Builder $q) => $q->where($field->code, '<=', (int) round(((float) $data['to']) * $base))
+                            function (Builder $q) use ($qCol, $data, $base, $isJson) {
+                                $val = (int) round(((float) $data['to']) * $base);
+                                $isJson
+                                    ? $this->applyJsonIntegerComparison($q, $qCol, '<=', $val)
+                                    : $q->where($qCol, '<=', $val);
+                            }
                         );
                 }),
 
-            default => Filter::make($field->code),
+            default => Filter::make($name)->query(fn (Builder $q): Builder => $q),
         };
 
         return $filter->label($field->name);
     }
 
+    protected function extractJsonColumn(string $queryColumn): string
+    {
+        return explode('->', $queryColumn, 2)[0];
+    }
+
+    protected function extractJsonKey(string $queryColumn): string
+    {
+        return explode('->', $queryColumn, 2)[1] ?? $queryColumn;
+    }
+
+    protected function applyJsonIntegerComparison(Builder $query, string $queryColumn, string $operator, int $value): Builder
+    {
+        $column = $this->extractJsonColumn($queryColumn);
+        $key = $this->extractJsonKey($queryColumn);
+
+        if (! $this->isSqlIdentifier($column) || ! $this->isSqlIdentifier($key)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereRaw(
+            "CAST(JSON_UNQUOTE(JSON_EXTRACT(`{$query->getModel()->getTable()}`.`{$column}`, ?)) AS SIGNED) {$operator} ?",
+            ['$.' . $key, $value],
+        );
+    }
+
+    protected function isSqlIdentifier(string $value): bool
+    {
+        return (bool) preg_match('/^[a-z_][a-z0-9_]*$/i', $value);
+    }
+
     protected function createConstraint(Field $field): Constraint
     {
+        $qCol = $field->getQueryColumn();
+        $name = $field->getSanitizedName();
+
         $filter = match ($field->type) {
             'text' => match ($field->input_type) {
-                'integer' => NumberConstraint::make($field->code)->integer(),
-                'numeric' => NumberConstraint::make($field->code),
-                default   => TextConstraint::make($field->code),
+                'integer' => NumberConstraint::make($name)->attribute($qCol)->integer(),
+                'numeric' => NumberConstraint::make($name)->attribute($qCol),
+                default   => TextConstraint::make($name)->attribute($qCol),
             },
 
-            'datetime' => DateConstraint::make($field->code),
+            'datetime' => DateConstraint::make($name)->attribute($qCol),
 
-            'checkbox', 'toggle' => BooleanConstraint::make($field->code),
+            'checkbox', 'toggle' => BooleanConstraint::make($name)->attribute($qCol),
 
             'select' => $field->is_multiselect
-                ? SelectConstraint::make($field->code)
+                ? SelectConstraint::make($name)
+                    ->attribute($qCol)
                     ->options(function () use ($field) {
                         return collect($field->options)
                             ->mapWithKeys(fn ($option) => [$option => $option])
                             ->toArray();
                     })
                     ->multiple()
-                : SelectConstraint::make($field->code)
+                : SelectConstraint::make($name)
+                    ->attribute($qCol)
                     ->options(function () use ($field) {
                         return collect($field->options)
                             ->mapWithKeys(fn ($option) => [$option => $option])
                             ->toArray();
                     }),
 
-            'checkbox_list' => SelectConstraint::make($field->code)
+            'checkbox_list' => SelectConstraint::make($name)
+                ->attribute($qCol)
                 ->options(function () use ($field) {
                     return collect($field->options)
                         ->mapWithKeys(fn ($option) => [$option => $option])
@@ -229,10 +281,11 @@ class CustomFilters extends Component
                 })
                 ->multiple(),
 
-            'star_rating' => StarRatingConstraint::make($field->code)
+            'star_rating' => StarRatingConstraint::make($field->getSanitizedName())
+                ->attribute($field->getQueryColumn())
                 ->integer(),
 
-            default => TextConstraint::make($field->code),
+            default => TextConstraint::make($name)->attribute($qCol),
         };
 
         return $filter->label($field->name);

@@ -24,6 +24,7 @@ class CustomFieldsServiceProvider extends PackageServiceProvider
             ->hasTranslations()
             ->hasViews(static::$viewNamespace)
             ->hasMigration('2024_11_13_052541_create_custom_fields_table')
+            ->hasMigration('2026_04_23_172903_add_storage_mode_to_custom_fields_table')
             ->runsMigrations();
     }
 

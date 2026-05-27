@@ -13,6 +13,10 @@ class CustomFieldsColumnManager
      */
     public static function createColumn(Field $field): void
     {
+        if ($field->isJsonMode()) {
+            return;
+        }
+
         $table = static::getTableName($field);
 
         if (! Schema::hasTable($table)) {
@@ -33,6 +37,10 @@ class CustomFieldsColumnManager
      */
     public static function updateColumn(Field $field): void
     {
+        if ($field->isJsonMode()) {
+            return;
+        }
+
         $table = static::getTableName($field);
 
         if (! Schema::hasTable($table)) {
@@ -53,6 +61,10 @@ class CustomFieldsColumnManager
      */
     public static function deleteColumn(Field $field): void
     {
+        if ($field->isJsonMode()) {
+            return;
+        }
+
         $table = static::getTableName($field);
 
         if (! Schema::hasTable($table)) {

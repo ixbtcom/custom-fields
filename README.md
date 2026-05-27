@@ -27,6 +27,7 @@ Let your end-users add **dynamic fields** to any Eloquent model + Filament resou
   - [Column manager](#column-manager)
 - [Enums](#enums)
 - [Star rating field](#star-rating-field)
+- [Storage modes](#storage-modes)
 - [Real-world example](#real-world-example)
 - [Translations](#translations)
 - [Publishing resources](#publishing-resources)
@@ -47,13 +48,14 @@ Let your end-users add **dynamic fields** to any Eloquent model + Filament resou
 - **12 field types** via `FieldType` enum — Text, Textarea, Select, Checkbox, Radio, Toggle, CheckboxList, DateTime, Editor, Markdown, ColorPicker, StarRating
 - **8 text input types** via `InputType` enum — Text, Email, Numeric, Integer, Password, Tel, Url, Color
 - **Star rating field** — 0–10 scale with half-star precision, paired numeric input + clickable stars, scaled-integer storage (`value × 100`)
-- **Schema manager** (`CustomFieldsColumnManager`) — programmatically add / drop DB columns when fields are created or deleted
+- **Two storage modes** — `Schema` (dedicated DB column per field, default) or `JSON` (value stored as key in an existing JSON column); see [Storage modes](#storage-modes)
+- **Schema manager** (`CustomFieldsColumnManager`) — programmatically add / drop DB columns when fields are created or deleted (no-op in JSON mode)
 - **Table integration** — the defined fields automatically surface as `CustomColumns` (if `use_in_table=true`) and `CustomFilters`
 - **Spatie-sortable** — drag-to-reorder fields with `order_column_name=sort`
 - **Soft deletes** — recover deleted field definitions
 - **Policy + permissions** — Filament Shield compatible, with `view_any_field_field`, `create_field_field` etc.
 - **Translations** — `en`, `ar`, and `ru` shipped (navigation + form labels + validation names + setting names)
-- **Pest test suite** — architecture + model + policy + trait + components + enums + star rating + translation parity (46 tests)
+- **Pest test suite** — architecture + model + policy + trait + components + enums + star rating + translation parity + JSON mode (121+ tests)
 
 ---
 
@@ -324,6 +326,52 @@ $employee = Employee::create([
 
 $employee->hobbies;  // ['chess', 'hiking']  ← automatically cast from JSON
 ```
+
+---
+
+## Storage modes
+
+By default, creating a custom field **adds a real column** to the model's table (`Schema` mode). Since Filament v5 plugin version 1.x, a second mode is available: **JSON storage**.
+
+### Schema mode (default)
+
+Each field gets its own database column. The `CustomFieldsColumnManager` runs `ALTER TABLE` on create and `DROP COLUMN` on force-delete. This is the traditional approach — clean SQL queries, proper indexing, type safety.
+
+### JSON mode
+
+The field value is stored as a key inside an **existing JSON column** (e.g. `extra`). No `ALTER TABLE` is ever executed. The field `code` becomes the JSON key; the `storage_column` setting (default `extra`) is the column name.
+
+**Model requirements:**
+
+```php
+class Article extends Model
+{
+    use HasCustomFields;
+
+    protected $fillable = ['title', 'extra'];      // storage column must be fillable
+    protected $casts    = ['extra' => 'array'];    // or AsArrayObject::class / 'json'
+}
+```
+
+In the admin panel, choose **JSON (key in existing column)** in the *Storage Mode* select when creating a field, then set *JSON Column* (default `extra`).
+
+### Key caveats
+
+**Collision warning.** The plugin shows a warning if the field `code` matches a key already used in `extra` on existing records. Admin responsibility — the plugin does not block creation.
+
+**fill() merge.** The `HasCustomFields` trait overrides `fill()` to merge JSON columns rather than replace them. This prevents custom-field saves from clobbering sibling keys (e.g. `extra.subtitle`) written by other code paths. If you bypass `fill()` (raw `$model->extra = [...]`), the merge does not apply.
+
+**Mode immutability.** `storage` is locked after creation (UI: `disabledOn('edit')`). Switching modes after records are written would require a data migration — not in scope.
+
+**Purge values action.** The action in the field list clears the field value from all records:
+- Schema mode: `SET column = NULL WHERE column IS NOT NULL`
+- JSON mode: `JSON_REMOVE(column, '$.key') WHERE JSON_CONTAINS_PATH(column, 'one', '$.key')` — **MySQL only**
+
+Typed confirmation (`code` must be typed literally) + preflight count are shown before any changes.
+
+**Filter/sort SQL.** Filters and QueryBuilder constraints use `extra->code` path syntax (arrow notation). StarRating comparisons use `CAST(JSON_UNQUOTE(JSON_EXTRACT(...)) AS SIGNED)` to avoid lexicographic comparison pitfalls.
+
+**Non-MySQL.** JSON mode storage and purge require MySQL 5.7+. Schema mode works on any Laravel-supported driver.
 
 ---
 

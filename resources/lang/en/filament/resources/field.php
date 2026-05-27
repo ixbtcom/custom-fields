@@ -650,6 +650,19 @@ return [
                     'is-multiselect' => 'Is Multiselect',
                     'sort-order'     => 'Sort Order',
 
+                    'storage'        => 'Storage Mode',
+                    'storage-helper' => 'Schema mode adds a column to the table. JSON mode stores the value in an existing JSON column.',
+
+                    'storage-options' => [
+                        'schema' => 'Schema (separate column)',
+                        'json'   => 'JSON (key in existing column)',
+                    ],
+
+                    'storage-column'         => 'JSON Column',
+                    'storage-column-helper'  => 'Name of the existing JSON-castable column on the target model (e.g. "extra"). Must be present in $fillable and cast as array/json.',
+                    'storage-column-warning' => 'Warning: the specified column may not exist on the target model or is not JSON-castable. Values may not persist correctly.',
+                    'collision-warning'      => 'Warning: the key ":code" already exists in column ":column" on some records. Creating this field may conflict with existing data.',
+
                     'type-options' => [
                         'text'          => 'Text Input',
                         'textarea'      => 'Textarea',
@@ -693,6 +706,7 @@ return [
             'code'       => 'Code',
             'name'       => 'Name',
             'type'       => 'Type',
+            'storage'    => 'Storage',
             'resource'   => 'Resource',
             'created-at' => 'Created At',
         ],
@@ -721,6 +735,27 @@ return [
         ],
 
         'actions' => [
+            'purge' => [
+                'label' => 'Purge values',
+
+                'modal' => [
+                    'heading'     => 'Purge field values',
+                    'description' => 'This will clear the value for field ":code" from :count record(s). Type ":code" to confirm.',
+                ],
+
+                'confirmation' => [
+                    'input-label' => 'Type the field code to confirm',
+                ],
+
+                'notification' => [
+                    'title' => 'Values purged',
+                    'body'  => ':count record(s) updated.',
+                    'error' => 'Failed to purge values.',
+                ],
+
+                'unsupported-driver' => 'JSON purge is only supported on MySQL. Operation aborted.',
+            ],
+
             'restore' => [
                 'notification' => [
                     'title' => 'Field restored',
@@ -744,6 +779,19 @@ return [
         ],
 
         'bulk-actions' => [
+            'purge' => [
+                'label' => 'Purge values',
+
+                'modal' => [
+                    'heading' => 'Purge field values (bulk)',
+                ],
+
+                'notification' => [
+                    'title' => 'Bulk purge completed',
+                    'body'  => ':updated record(s) updated, :failed failed, :skipped skipped.',
+                ],
+            ],
+
             'restore' => [
                 'notification' => [
                     'title' => 'Fields restored',

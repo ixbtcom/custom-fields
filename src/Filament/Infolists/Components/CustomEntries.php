@@ -91,7 +91,7 @@ class CustomEntries extends Component
             default => TextEntry::class,
         };
 
-        $entry = $entryClass::make($field->code)
+        $entry = $entryClass::make($field->getComponentPath())
             ->label($field->name);
 
         if (! empty($field->infolist_settings)) {

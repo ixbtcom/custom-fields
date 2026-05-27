@@ -650,6 +650,19 @@ return [
                     'is-multiselect' => 'اختيار متعدد',
                     'sort-order'     => 'ترتيب الفرز',
 
+                    'storage'        => 'وضع التخزين',
+                    'storage-helper' => 'وضع Schema يضيف عموداً إلى الجدول. وضع JSON يخزن القيمة في عمود JSON موجود.',
+
+                    'storage-options' => [
+                        'schema' => 'Schema (عمود منفصل)',
+                        'json'   => 'JSON (مفتاح في عمود موجود)',
+                    ],
+
+                    'storage-column'         => 'عمود JSON',
+                    'storage-column-helper'  => 'اسم عمود JSON الموجود على النموذج الهدف (مثلاً "extra"). يجب أن يكون في $fillable ومُحوَّلاً كـ array/json.',
+                    'storage-column-warning' => 'تحذير: قد لا يكون العمود المحدد موجوداً في النموذج الهدف أو غير قابل للتحويل إلى JSON. قد لا يتم حفظ القيم بشكل صحيح.',
+                    'collision-warning'      => 'تحذير: المفتاح ":code" موجود بالفعل في العمود ":column" في بعض السجلات. قد يتعارض هذا الحقل مع البيانات الموجودة.',
+
                     'type-options' => [
                         'text'          => 'حقل نص',
                         'textarea'      => 'منطقة نص',
@@ -693,6 +706,7 @@ return [
             'code'       => 'الرمز',
             'name'       => 'الاسم',
             'type'       => 'النوع',
+            'storage'    => 'التخزين',
             'resource'   => 'المورد',
             'created-at' => 'تاريخ الإنشاء',
         ],
@@ -721,6 +735,27 @@ return [
         ],
 
         'actions' => [
+            'purge' => [
+                'label' => 'حذف القيم',
+
+                'modal' => [
+                    'heading'     => 'حذف قيم الحقل',
+                    'description' => 'سيتم مسح قيمة الحقل ":code" من :count سجل(ات). اكتب ":code" للتأكيد.',
+                ],
+
+                'confirmation' => [
+                    'input-label' => 'اكتب رمز الحقل للتأكيد',
+                ],
+
+                'notification' => [
+                    'title' => 'تم حذف القيم',
+                    'body'  => 'تم تحديث :count سجل(ات).',
+                    'error' => 'فشل حذف القيم.',
+                ],
+
+                'unsupported-driver' => 'حذف JSON مدعوم فقط على MySQL. تم إلغاء العملية.',
+            ],
+
             'restore' => [
                 'notification' => [
                     'title' => 'تم استعادة الحقل',
@@ -744,6 +779,19 @@ return [
         ],
 
         'bulk-actions' => [
+            'purge' => [
+                'label' => 'حذف القيم',
+
+                'modal' => [
+                    'heading' => 'حذف قيم الحقول (مجموعة)',
+                ],
+
+                'notification' => [
+                    'title' => 'اكتملت عملية الحذف المجمع',
+                    'body'  => 'تم تحديث :updated سجل(ات)، فشل :failed، تم تخطي :skipped.',
+                ],
+            ],
+
             'restore' => [
                 'notification' => [
                     'title' => 'تم استعادة الحقول',

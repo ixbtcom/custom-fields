@@ -92,7 +92,7 @@ class CustomColumns extends Component
             default => TextColumn::class,
         };
 
-        $column = $columnClass::make($field->code)
+        $column = $columnClass::make($field->getComponentPath())
             ->label($field->name);
 
         if (! empty($field->table_settings)) {
