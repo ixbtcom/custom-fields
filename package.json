@@ -5,8 +5,8 @@
     "build": "tailwindcss -i resources/css/index.css -o resources/dist/custom-fields.css --minify"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.12",
-    "@tailwindcss/postcss": "^4.1.12",
-    "tailwindcss": "^4.1.12"
+    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "tailwindcss": "^4.3.3"
   }
 }
